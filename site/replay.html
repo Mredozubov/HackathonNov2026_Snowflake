@@ -3,21 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Apple trading replay</title>
-  <link rel="stylesheet" href="replay.css?v=long-replay">
-  <script type="module" src="replay.js?v=long-replay"></script>
+  <title>Stock trading replay</title>
+  <link rel="stylesheet" href="replay.css?v=pilot">
+  <script type="module" src="replay.js?v=pilot"></script>
 </head>
 <body>
   <main>
     <nav><a href="index.html">SEC filings dashboard</a><span>Simulated trading replay</span></nav>
     <header>
-      <div><p class="market">NASDAQ · AAPL</p><h1>Apple Inc.</h1><p class="muted" id="period"></p></div>
+      <div><p class="market" id="ticker"></p><h1 id="company-name">Stock replay</h1><p class="muted" id="period"></p></div>
       <div class="quote"><strong id="price"></strong><span id="date"></span></div>
     </header>
+    <form id="replay-picker">
+      <div class="field"><label for="stock">Stock</label><select id="stock"></select></div>
+      <div class="field"><label for="start-date">Start date</label><input id="start-date" type="date" required></div>
+      <button type="submit">Start replay</button>
+      <button type="button" class="secondary" id="random">Randomize</button>
+    </form>
+    <p id="data-status" class="muted" role="status">Loading historical data…</p>
+    <div id="game-panel" hidden>
     <section aria-labelledby="chart-title" class="chart-panel">
       <h2 id="chart-title">Daily close <span class="muted">(USD)</span></h2>
       <div class="chart-wrap">
-        <canvas id="chart" tabindex="0" aria-label="Simulated daily closes. Use the arrow keys to inspect dates and prices." aria-describedby="chart-detail"></canvas>
+        <canvas id="chart" tabindex="0" aria-label="Historical daily closes. Use the arrow keys to inspect dates and prices." aria-describedby="chart-detail"></canvas>
         <div id="chart-detail" class="chart-detail" hidden><span id="hover-date"></span><strong id="hover-price"></strong></div>
       </div>
     </section>
@@ -47,6 +55,7 @@
     </section>
     <section class="timeline-section"><h2>Event timeline</h2><ol id="timeline" tabindex="0" aria-label="Revealed events, scroll for more"></ol></section>
     <section id="history-section" hidden><h2>Trade history</h2><ol id="history"></ol></section>
+    </div>
   </main>
 </body>
 </html>

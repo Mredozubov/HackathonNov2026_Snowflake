@@ -25,3 +25,6 @@ connections.toml
 # Earlier screenshot-based chart drafts
 /nvidia-price-timeline.png
 /nvidia-stock-events.png
+
+site/replay-data.json
+site/replay-data.tmp

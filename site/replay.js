@@ -1,4 +1,4 @@
-import {advance, currentDay, events, newGame, portfolio, prices, startingCash, years} from "./replay-engine.mjs?v=long-replay";
+import {configureReplay, advance, currentDay, events, newGame, portfolio, prices, startingCash, years} from "./replay-engine.mjs?v=pilot";
 
 const byId = id => document.getElementById(id);
 const canvas = byId("chart");
@@ -7,6 +7,10 @@ const action = byId("action");
 const shares = byId("shares");
 const usd = new Intl.NumberFormat("en-US", {style:"currency", currency:"USD"});
 const money = cents => usd.format(cents / 100);
+const fineUsd = new Intl.NumberFormat("en-US", {style:"currency", currency:"USD", maximumFractionDigits:4});
+const priceLabel = cents => fineUsd.format(cents / 100);
+let company;
+let dataset;
 const shortFormat = new Intl.DateTimeFormat("en-US", {month:"short", day:"numeric", timeZone:"UTC"});
 const fullFormat = new Intl.DateTimeFormat("en-US", {month:"short", day:"numeric", year:"numeric", timeZone:"UTC"});
 const shortDate = value => shortFormat.format(new Date(value + "T00:00:00Z"));
@@ -19,6 +23,7 @@ let chartRange;
 const chartDetail = byId("chart-detail");
 
 function drawChart() {
+  if (!company || !prices.length) return;
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   if (width < 1 || height < 1) return;
@@ -37,10 +42,10 @@ function drawChart() {
   const tip = fraction ? last + (prices[day + 1].cents / 100 - last) * fraction : last;
   const minimum = Math.min(...values, tip);
   const maximum = Math.max(...values, tip);
-  const padding = Math.max(4, (maximum - minimum) * .12);
+  const padding = Math.max(maximum * .006, (maximum - minimum) * .12, .0002);
   const low = minimum - padding;
   const high = maximum + padding;
-  const plot = {left:53, right:width - 15, top:12, bottom:height - 28};
+  const plot = {left:78, right:width - 15, top:12, bottom:height - 28};
   const span = Math.max(1, playhead - start);
   const x = index => plot.left + (plot.right - plot.left) * (index - start) / span;
   chartRange = {start, day, span, left:plot.left, right:plot.right};
@@ -57,7 +62,7 @@ function drawChart() {
     context.moveTo(plot.left, lineY);
     context.lineTo(plot.right, lineY);
     context.stroke();
-    context.fillText("$" + tick, 0, lineY + 4);
+    context.fillText(priceLabel(tick * 100), 0, lineY + 4);
   }
   const labels = Math.min(visible.length, width < 520 ? 3 : 6);
   for (let i = 0; i < labels; i++) {
@@ -117,7 +122,7 @@ function drawChart() {
     context.fillStyle = "#2457dc";
     context.fill();
     byId("hover-date").textContent = fullDate(point.date);
-    byId("hover-price").textContent = money(point.cents);
+    byId("hover-price").textContent = priceLabel(point.cents);
     chartDetail.style.left = Math.max(0, Math.min(cx + 10, width - chartDetail.offsetWidth)) + "px";
   }
 }
@@ -149,7 +154,7 @@ function tradeSummary(order) {
   const name = order.action[0].toUpperCase() + order.action.slice(1);
   return order.rejected
     ? name + " order for " + order.shares + " shares did not fill on " + shortDate(order.date) + " due to insufficient available cash at the close."
-    : name + " · " + order.shares + " shares at " + money(order.cents) + " on " + shortDate(order.date);
+    : name + " · " + order.shares + " shares at " + priceLabel(order.cents) + " on " + shortDate(order.date);
 }
 
 function render() {
@@ -159,7 +164,7 @@ function render() {
   const quote = prices[day];
   const event = events[game.event];
   const account = portfolio(game);
-  byId("price").textContent = money(quote.cents);
+  byId("price").textContent = priceLabel(quote.cents);
   const year = quote.date.slice(0, 4);
   const yearWindow = years.get(year);
   const nextYear = events[game.event + 1];
@@ -201,10 +206,18 @@ function render() {
     number.textContent = index + 1;
     date.append(number, shortDate(prices[item.day].date));
     const title = document.createElement("strong");
-    title.textContent = item.checkpoint ? (item.partial ? "Latest simulated session" : item.year + " year-end") : item.title;
+    title.textContent = item.checkpoint ? (item.partial ? "Latest available session" : item.year + " year-end") : item.title;
     const copy = document.createElement("p");
     copy.textContent = item.copy ?? "Annual portfolio checkpoint.";
     row.append(date, title, copy);
+    for (const source of item.sources ?? []) {
+      const link = document.createElement("a");
+      link.href = source.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = source.title + " · SEC";
+      row.append(link);
+    }
     if (!item.checkpoint && item.day < day) {
       const change = (prices[item.day + 1].cents / prices[item.day].cents - 1) * 100;
       const sign = change >= 0 ? "+" : "−";
@@ -277,7 +290,7 @@ function animateAdvance(next) {
     playhead = from + (to - from) * eased;
     const quote = prices[Math.floor(playhead)];
     byId("chart-title").textContent = "Daily close · " + quote.date.slice(0, 4) + " (USD)";
-    byId("price").textContent = money(quote.cents);
+    byId("price").textContent = priceLabel(quote.cents);
     byId("date").textContent = shortDate(quote.date) + ", " + quote.date.slice(0, 4) + " close";
     drawChart();
     if (progress < 1) {
@@ -307,7 +320,7 @@ byId("stop").addEventListener("click", () => {
   byId("message").textContent = "";
   render();
 });
-byId("reset").addEventListener("click", () => {
+function restart() {
   if (animationFrame !== null) cancelAnimationFrame(animationFrame);
   animationFrame = null;
   game = newGame();
@@ -319,6 +332,64 @@ byId("reset").addEventListener("click", () => {
   shares.disabled = true;
   byId("message").textContent = "";
   render();
+}
+byId("reset").addEventListener("click", restart);
+
+const stock = byId("stock");
+const startDate = byId("start-date");
+
+function updateBounds() {
+  const selected = dataset.companies[Number(stock.value)];
+  startDate.min = selected.prices[0][0];
+  startDate.max = selected.prices.at(-2)[0];
+  if (!startDate.value || startDate.value < startDate.min || startDate.value > startDate.max) {
+    startDate.value = startDate.min;
+  }
+  return selected;
+}
+
+function startReplay() {
+  const selected = updateBounds();
+  configureReplay(selected, startDate.value);
+  company = selected;
+  byId("ticker").textContent = selected.ticker;
+  byId("company-name").textContent = selected.name;
+  byId("data-status").replaceChildren("Last checked " + new Date(dataset.updatedAt).toLocaleString() +
+    " · Latest close " + fullDate(selected.prices.at(-1)[0]) + " · ");
+  const source = document.createElement("a");
+  source.href = selected.priceSource;
+  source.textContent = "Price source";
+  byId("data-status").append(source);
+  byId("game-panel").hidden = false;
+  restart();
+}
+
+function randomize() {
+  stock.value = Math.floor(Math.random() * dataset.companies.length);
+  const selected = updateBounds();
+  // Leave enough sessions for a playable initial round where possible.
+  const length = Math.max(1, selected.prices.length - 45);
+  startDate.value = selected.prices[Math.floor(Math.random() * length)][0];
+  startReplay();
+}
+
+byId("replay-picker").addEventListener("submit", event => {
+  event.preventDefault();
+  if (dataset) startReplay();
 });
+stock.addEventListener("change", updateBounds);
+byId("random").addEventListener("click", () => { if (dataset) randomize(); });
 new ResizeObserver(drawChart).observe(canvas);
-render();
+
+fetch("replay-data.json", {cache:"no-store"}).then(response => {
+  if (!response.ok) throw new Error("Historical data is unavailable.");
+  return response.json();
+}).then(snapshot => {
+  if (!snapshot.companies.length) throw new Error("No stock data is available.");
+  dataset = snapshot;
+  snapshot.companies.forEach((entry, index) => stock.add(new Option(entry.name + " (" + entry.ticker + ")", index)));
+  randomize();
+}).catch(error => {
+  byId("data-status").textContent = error.message;
+  byId("replay-picker").hidden = true;
+});

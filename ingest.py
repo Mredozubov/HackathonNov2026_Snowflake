@@ -135,7 +135,7 @@ def export(cursor, companies, cutoff):
     pending.replace(output)
 
 
-def main():
+def snowflake_connection():
     import snowflake.connector
 
     profile = os.environ.get("SNOWFLAKE_CONNECTION_NAME")
@@ -149,6 +149,10 @@ def main():
         settings.setdefault("authenticator", "SNOWFLAKE_JWT")
         settings.setdefault("private_key_file", str(ROOT / ".local" / "snowflake-key.p8"))
 
+    return snowflake.connector.connect(**settings)
+
+
+def main():
     companies = json.loads((ROOT / "companies.json").read_text())
     if any(not re.fullmatch(r"[0-9]{10}", company["cik"]) for company in companies):
         raise ValueError("Company CIKs must be ten-digit strings.")
@@ -162,7 +166,7 @@ def main():
         )
         filings.extend(company_filings)
         revenue.extend(company_revenue)
-    with snowflake.connector.connect(**settings) as connection:
+    with snowflake_connection() as connection:
         with connection.cursor() as cursor:
             load(cursor, "COMPANIES", [(c["cik"], c["ticker"], c["name"]) for c in companies])
             load(cursor, "FILINGS", filings)
