@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apple trading replay</title>
+  <link rel="stylesheet" href="replay.css?v=long-replay">
+  <script type="module" src="replay.js?v=long-replay"></script>
+</head>
+<body>
+  <main>
+    <nav><a href="index.html">SEC filings dashboard</a><span>Simulated trading replay</span></nav>
+    <header>
+      <div><p class="market">NASDAQ · AAPL</p><h1>Apple Inc.</h1><p class="muted" id="period"></p></div>
+      <div class="quote"><strong id="price"></strong><span id="date"></span></div>
+    </header>
+    <section aria-labelledby="chart-title" class="chart-panel">
+      <h2 id="chart-title">Daily close <span class="muted">(USD)</span></h2>
+      <div class="chart-wrap">
+        <canvas id="chart" tabindex="0" aria-label="Simulated daily closes. Use the arrow keys to inspect dates and prices." aria-describedby="chart-detail"></canvas>
+        <div id="chart-detail" class="chart-detail" hidden><span id="hover-date"></span><strong id="hover-price"></strong></div>
+      </div>
+    </section>
+    <section class="desk" aria-labelledby="decision-title">
+      <div class="decision">
+        <h2 id="decision-title"></h2>
+        <p id="decision-copy" hidden></p>
+        <form id="trade">
+          <div class="field"><label for="action">Action</label><select id="action">
+            <option value="hold">Hold</option><option value="buy">Buy</option><option value="sell">Sell</option>
+            <option value="short">Short</option><option value="cover">Cover</option>
+          </select></div>
+          <div class="field"><label for="shares">Shares</label><input id="shares" type="number" min="1" max="100000" step="1" value="10" disabled></div>
+          <button type="submit">Advance to next event</button>
+        </form>
+        <p id="trade-note" class="muted" hidden></p>
+        <div id="checkpoint-actions" hidden>
+          <button id="continue" type="button"></button>
+          <button id="stop" type="button" class="secondary">End replay</button>
+        </div>
+        <p id="message" role="status"></p>
+      </div>
+      <aside aria-label="Portfolio">
+        <dl><div><dt>Account value</dt><dd id="equity"></dd></div><div><dt>Available cash</dt><dd id="available"></dd></div><div><dt>Position</dt><dd id="position"></dd></div></dl>
+        <button id="reset" type="button" class="secondary">Restart replay</button>
+      </aside>
+    </section>
+    <section class="timeline-section"><h2>Event timeline</h2><ol id="timeline" tabindex="0" aria-label="Revealed events, scroll for more"></ol></section>
+    <section id="history-section" hidden><h2>Trade history</h2><ol id="history"></ol></section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,27 @@
+.env
+.env.*
+.envrc
+.local/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+*.pem
+*.p8
+*.key
+*.p12
+*.pfx
+.netrc
+.aws/
+.snowflake/
+.streamlit/secrets.toml
+connections.toml
+
+/site/dashboard.json
+/site/dashboard.tmp
+
+# Earlier screenshot-based chart drafts
+/nvidia-price-timeline.png
+/nvidia-stock-events.png

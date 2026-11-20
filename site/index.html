@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Company filings</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="dashboard.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Company filings</h1>
+      <p><a href="replay.html">Play the Apple trading replay</a></p>
+      <p id="status" role="status">Loading dashboard data…</p>
+      <label for="company" hidden>Company</label>
+      <select id="company" hidden></select>
+    </header>
+    <div id="dashboard" hidden>
+      <section>
+        <h2>Quarterly revenue</h2>
+        <p class="note">US dollars. Select a bar to open its SEC filing. Derived Q4 values use annual revenue minus the first three quarters.</p>
+        <div id="revenue" class="chart"></div>
+      </section>
+      <section>
+        <h2>Filing timeline</h2>
+        <ol id="filings"></ol>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
